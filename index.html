@@ -32,6 +32,26 @@
 <!-- Netlify Identity: powers the /admin (Decap CMS) login -->
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 
+<!-- Restore saved theme + language BEFORE paint: no colour flash, no LTR→RTL snap.
+     Runs in <head> so <html> is set before the body renders. -->
+<script>
+  (function () {
+    try {
+      var d = document.documentElement, s = window.localStorage;
+      var theme = s.getItem('theme');
+      if (theme !== 'light' && theme !== 'dark')
+        theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      d.setAttribute('data-theme', theme);
+
+      var lang = s.getItem('lang');
+      if (lang !== 'en' && lang !== 'he')
+        lang = (navigator.language || '').indexOf('he') === 0 ? 'he' : 'en';
+      d.setAttribute('lang', lang);
+      d.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+    } catch (e) { /* storage blocked → keep the HTML defaults */ }
+  })();
+</script>
+
 <style>
 /* ═══════════ tokens ═══════════ */
 :root{
@@ -657,19 +677,24 @@ footer a:hover{text-decoration:underline wavy}
 
   /* ── theme ── */
   const themeBtn = $('#themeBtn'), themeLbl = $('#themeLbl');
-  if (matchMedia('(prefers-color-scheme: dark)').matches) root.dataset.theme = 'dark';
+  // initial theme is applied pre-paint by the head script (saved choice → system)
   const syncTheme = () => {
     const dark = root.dataset.theme === 'dark';
     themeLbl.textContent = dark ? T[lang()].light : T[lang()].dark;
     themeBtn.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
   };
-  themeBtn.onclick = () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; syncTheme(); };
+  themeBtn.onclick = () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('theme', root.dataset.theme); } catch (e) {}
+    syncTheme();
+  };
 
   /* ── language ── */
   const langBtn = $('#langBtn'), langLbl = $('#langLbl');
   const setLang = l => {
     root.lang = l;
     root.dir = l === 'he' ? 'rtl' : 'ltr';
+    try { localStorage.setItem('lang', l); } catch (e) {}
     document.title = T[l].title;
     $$('[data-en]').forEach(el => { el.innerHTML = el.dataset[l]; });
     $$('.tile').forEach(t => t.dataset.empty = T[l].empty);
@@ -786,7 +811,7 @@ footer a:hover{text-decoration:underline wavy}
     el.dataset.en = el.dataset.en.replace('2026', year);
     el.dataset.he = el.dataset.he.replace('2026', year);
   });
-  setLang(navigator.language?.startsWith('he') ? 'he' : 'en');
+  setLang(root.lang === 'he' ? 'he' : 'en');
   renderGallery();
 })();
 </script>
