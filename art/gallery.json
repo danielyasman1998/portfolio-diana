@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "image": "/art/01.png", "title": "rooftop, 8pm", "title_he": "על הגג, 20:00", "description": "", "category": "draw" },
+    { "image": "/art/02.gif", "title": "walk cycle, 12fps", "title_he": "מחזור הליכה, 12fps", "description": "", "category": "anim" },
+    { "image": "/art/03.jpg", "title": "sharing an umbrella", "title_he": "חולקות מטרייה", "description": "", "category": "draw" },
+    { "image": "/art/04.jpg", "title": "hands. again.", "title_he": "ידיים. שוב.", "description": "", "category": "sketch" },
+    { "image": "/art/05.gif", "title": "hair test", "title_he": "בדיקת שיער", "description": "", "category": "anim" },
+    { "image": "/art/06.jpg", "title": "the gang", "title_he": "החבורה", "description": "", "category": "draw" },
+    { "image": "/art/07.jpg", "title": "3am thumbnails", "title_he": "סקיצות של 3 לפנות בוקר", "description": "", "category": "sketch" },
+    { "image": "/art/08.gif", "title": "blink, 6 frames", "title_he": "מצמוץ, 6 פריימים", "description": "", "category": "anim" }
+  ]
+}

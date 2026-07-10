@@ -1,0 +1,44 @@
+backend:
+  name: git-gateway
+  branch: main # change if your default branch isn't "main"
+
+# Where Diana's uploaded images are stored in the repo, and how the site references them.
+media_folder: "art/uploads"   # files land here in the repo
+public_folder: "/art/uploads" # ...and are served from here
+
+# Nicer commit messages in your git history
+commit_messages:
+  create: 'Add artwork "{{slug}}" via CMS'
+  update: 'Update gallery via CMS'
+  uploadMedia: 'Upload {{path}} via CMS'
+  deleteMedia: 'Delete {{path}} via CMS'
+
+collections:
+  - name: "gallery"
+    label: "Gallery"
+    description: "The pile. Add, reorder, or remove pieces here."
+    files:
+      - name: "artworks"
+        label: "Artwork"
+        file: "art/gallery.json"
+        editor:
+          preview: false
+        fields:
+          - name: "items"
+            label: "Pieces"
+            label_singular: "piece"
+            widget: "list"
+            summary: "{{fields.title}}"
+            fields:
+              - { name: "image", label: "Image", widget: "image", hint: "Drag & drop or click to upload. JPG, PNG, or GIF." }
+              - { name: "title", label: "Title", widget: "string" }
+              - { name: "title_he", label: "Title (Hebrew)", widget: "string", required: false, hint: "Optional. Leave blank to reuse the English title in Hebrew view." }
+              - { name: "description", label: "Description", widget: "text", required: false, hint: "Optional. Shows under the title when the piece is opened." }
+              - name: "category"
+                label: "Type"
+                widget: "select"
+                default: "draw"
+                options:
+                  - { label: "Drawing", value: "draw" }
+                  - { label: "Animation (adds a LOOP badge)", value: "anim" }
+                  - { label: "Sketchbook", value: "sketch" }

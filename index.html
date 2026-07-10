@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>diana — draws stuff, makes it move</title>
+<meta name="description" content="Diana. Drawings and animation. Commissions, links, and a pile of frames.">
+
+<!--
+  ─────────────────────────────────────────────
+  STUFF TO SWAP
+  1. title + meta description ....... above
+  2. name, handle, bio .............. #hero
+  3. link buttons (href + label) .... #links
+  4. art ............................ managed by Diana in the CMS (/admin).
+                                      Writes art/gallery.json. Edit that
+                                      file to change art by hand. Missing
+                                      images turn into a "drop art here" tile.
+  5. prices + slots ................. #comms
+  6. email + socials ................ #hi
+
+  TRANSLATIONS
+  Every bit of text carries data-en and data-he. Edit them side by side.
+  The button flips <html lang> + dir, and the fonts follow automatically.
+  ─────────────────────────────────────────────
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Nunito:wght@400;600;800&family=Shantell+Sans:ital,wght@0,400;0,600;1,400&family=Secular+One&family=Rubik:wght@400;600;800&family=Gveret+Levin+AlefAlefAlef&display=swap" rel="stylesheet">
+
+<!-- Netlify Identity: powers the /admin (Decap CMS) login -->
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+<style>
+/* ═══════════ tokens ═══════════ */
+:root{
+  --bg:#EFEBFF; --paper:#FFFFFF; --line:#DCD5F5;
+  --ink:#241A47; --muted:#6D6394;
+  --pink:#FF4D9D; --lime:#C8F751; --sky:#59C2FF;
+  --pop:0 5px 0 var(--ink);
+  --pop-lg:0 9px 0 var(--ink);
+
+  --display:"Darumadrop One","Comic Sans MS",cursive;
+  --body:"Nunito",system-ui,sans-serif;
+  --hand:"Shantell Sans","Comic Sans MS",cursive;
+
+  --bounce:cubic-bezier(.34,1.56,.64,1);
+  --w:640px; --w-wide:1080px;
+}
+/* Hebrew swaps the whole type system, nothing else changes */
+[dir="rtl"]{
+  --display:"Secular One",system-ui,sans-serif;
+  --body:"Rubik",system-ui,sans-serif;
+  --hand:"Gveret Levin AlefAlefAlef","Rubik",cursive;
+}
+[data-theme="dark"]{
+  --bg:#171130; --paper:#211A42; --line:#3A3070;
+  --ink:#F0ECFF; --muted:#9C93C9;
+  --pink:#FF6FB0; --lime:#D3FF6B; --sky:#6FC9FF;
+  --pop:0 5px 0 #0C0820; --pop-lg:0 9px 0 #0C0820;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:400 17px/1.65 var(--body); overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.55;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%);
+}
+img{max-width:100%; display:block}
+a{color:inherit}
+:focus-visible{outline:3px dashed var(--pink); outline-offset:4px}
+
+.wrap{width:100%; max-width:var(--w); margin:0 auto; padding:0 22px; position:relative; z-index:1}
+.wide{max-width:var(--w-wide)}
+.ltr{direction:ltr; unicode-bidi:isolate; display:inline-block}
+
+.note{
+  font:400 15px/1.3 var(--hand); color:var(--muted);
+  display:inline-block; transform:rotate(-2deg); margin-bottom:14px;
+}
+.note b{color:var(--pink); font-weight:600}
+[dir="rtl"] .note{transform:rotate(2deg); font-size:19px}
+
+/* ═══════════ top bar ═══════════ */
+.bar{position:sticky; top:0; z-index:60; padding:12px 0;
+  background:color-mix(in srgb,var(--bg) 85%,transparent); backdrop-filter:blur(8px)}
+.bar-in{max-width:var(--w-wide); margin:0 auto; padding:0 22px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px}
+.who{font:400 19px/1 var(--display); letter-spacing:.02em}
+.who::after{content:"."; color:var(--pink)}
+
+.btns{display:flex; gap:9px}
+.toggle{
+  appearance:none; cursor:pointer; background:var(--paper); color:var(--ink);
+  border:2px solid var(--ink); border-radius:999px; padding:8px 14px;
+  font:800 12px/1 var(--body); letter-spacing:.04em; text-transform:uppercase;
+  display:flex; align-items:center; gap:7px; box-shadow:0 3px 0 var(--ink);
+  transition:transform .18s var(--bounce), box-shadow .18s;
+}
+.toggle:hover{transform:translateY(-2px); box-shadow:0 5px 0 var(--ink)}
+.toggle:active{transform:translateY(2px) scale(1.04,.94); box-shadow:0 1px 0 var(--ink)}
+.toggle svg{width:14px; height:14px}
+.lang{min-width:70px; justify-content:center; font-size:13px}
+.lang b{font-weight:800}
+[dir="rtl"] .toggle{letter-spacing:0; text-transform:none; font-size:13px}
+[data-theme="light"] .i-moon{display:none}
+[data-theme="dark"] .i-sun{display:none}
+
+/* ═══════════ hero ═══════════ */
+.hero{padding:44px 0 26px; text-align:center}
+
+.photo{
+  width:170px; margin:0 auto 34px; position:relative;
+  background:var(--paper); padding:11px 11px 40px;
+  border:2px solid var(--ink); border-radius:4px;
+  box-shadow:var(--pop-lg); transform:rotate(-3.5deg);
+  transition:transform .35s var(--bounce);
+}
+.photo:hover{transform:rotate(1.5deg) scale(1.03)}
+.photo img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:2px; background:var(--bg)}
+.photo figcaption{
+  position:absolute; left:0; right:0; bottom:11px;
+  font:400 16px/1 var(--hand); color:var(--muted);
+}
+[dir="rtl"] .photo figcaption{font-size:20px}
+.tape{
+  position:absolute; width:76px; height:26px; z-index:2;
+  background:color-mix(in srgb,var(--lime) 75%,transparent);
+  border-left:2px dashed color-mix(in srgb,var(--ink) 20%,transparent);
+  border-right:2px dashed color-mix(in srgb,var(--ink) 20%,transparent);
+}
+.photo .tape{top:-14px; left:50%; transform:translateX(-50%) rotate(-4deg)}
+
+h1{
+  font:400 clamp(58px,13vw,116px)/.86 var(--display);
+  margin:0 0 6px; color:var(--pink);
+  -webkit-text-stroke:9px var(--paper); paint-order:stroke fill;
+  filter:drop-shadow(0 6px 0 var(--ink));
+  display:inline-block; transform:rotate(-2deg); cursor:default;
+}
+[dir="rtl"] h1{font-size:clamp(50px,11vw,98px); line-height:1.05; -webkit-text-stroke-width:8px}
+h1:hover{animation:wobble .55s var(--bounce)}
+@keyframes wobble{
+  0%{transform:rotate(-2deg) scale(1,1)}
+  30%{transform:rotate(-2deg) scale(1.09,.92)}
+  55%{transform:rotate(1deg) scale(.96,1.06)}
+  80%{transform:rotate(-3deg) scale(1.02,.98)}
+  100%{transform:rotate(-2deg) scale(1,1)}
+}
+.handle{font:600 15px/1 var(--hand); color:var(--muted); margin:14px 0 20px}
+[dir="rtl"] .handle{font-size:19px}
+
+.bio{margin:0 auto 24px; max-width:38ch; font-size:19px}
+.bio b{
+  font-weight:400; background:linear-gradient(transparent 62%, color-mix(in srgb,var(--lime) 85%,transparent) 0);
+  padding:0 2px;
+}
+
+.chips{display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin-bottom:26px}
+.chip{
+  font:600 13px/1 var(--body); background:var(--paper);
+  border:2px solid var(--ink); border-radius:999px; padding:8px 13px;
+  box-shadow:0 3px 0 var(--ink); transition:transform .2s var(--bounce);
+}
+.chip:nth-child(2n){transform:rotate(-2deg)}
+.chip:nth-child(3n){transform:rotate(2deg)}
+.chip:hover{transform:rotate(0) translateY(-3px)}
+
+.open{
+  display:inline-flex; align-items:center; gap:9px;
+  font:800 13px/1 var(--body); letter-spacing:.06em; text-transform:uppercase;
+  background:var(--lime); color:#241A47; border:2px solid var(--ink);
+  border-radius:999px; padding:11px 17px; box-shadow:0 4px 0 var(--ink);
+  transform:rotate(1.5deg);
+}
+[dir="rtl"] .open{letter-spacing:0; text-transform:none; font-size:14px}
+.open i{width:9px; height:9px; border-radius:50%; background:#241A47; animation:blip 1.6s steps(1,end) infinite}
+@keyframes blip{0%,50%{opacity:1}50.01%,100%{opacity:.2}}
+
+/* ═══════════ sections ═══════════ */
+.sec{padding:60px 0}
+h2{font:400 clamp(34px,6vw,50px)/1 var(--display); margin:0 0 10px; letter-spacing:.01em}
+[dir="rtl"] h2{line-height:1.2}
+h2 em{font-style:normal; color:var(--sky)}
+.sub{margin:0 0 30px; color:var(--muted); font-size:16px}
+
+/* ═══════════ links ═══════════ */
+.links{display:flex; flex-direction:column; gap:16px}
+.link{
+  display:flex; align-items:center; gap:15px; text-decoration:none;
+  background:var(--paper); border:2.5px solid var(--ink); border-radius:20px;
+  padding:19px 21px; box-shadow:var(--pop);
+  transition:transform .3s var(--bounce), box-shadow .3s var(--bounce);
+}
+.link:nth-child(odd){transform:rotate(-.7deg)}
+.link:nth-child(even){transform:rotate(.7deg)}
+.link:hover,.link:focus-visible{transform:rotate(0) translateY(-5px) scale(1.02,.99); box-shadow:var(--pop-lg)}
+.link:active{transform:rotate(0) translateY(3px) scale(1.03,.95); box-shadow:0 1px 0 var(--ink)}
+
+.link .ic{
+  flex:none; width:46px; height:46px; border-radius:14px;
+  display:grid; place-items:center; border:2.5px solid var(--ink);
+}
+.link .ic svg{width:22px; height:22px}
+.link:nth-child(1) .ic{background:var(--pink); color:#fff}
+.link:nth-child(2) .ic{background:var(--sky); color:#241A47}
+.link:nth-child(3) .ic{background:var(--lime); color:#241A47}
+.link:nth-child(4) .ic{background:var(--ink); color:var(--paper)}
+
+.link .txt{flex:1; min-width:0}
+.link .t{display:block; font:800 18px/1.25 var(--body)}
+.link .s{display:block; font:400 15px/1.3 var(--hand); color:var(--muted); margin-top:2px}
+[dir="rtl"] .link .s{font-size:19px}
+.link .arw{flex:none; transition:transform .3s var(--bounce)}
+.link:hover .arw{transform:translateX(5px) rotate(-8deg)}
+[dir="rtl"] .link .arw{transform:scaleX(-1)}
+[dir="rtl"] .link:hover .arw{transform:scaleX(-1) translateX(5px) rotate(-8deg)}
+[dir="rtl"] .link .arw.down{transform:none}
+[dir="rtl"] .link:hover .arw.down{transform:translateY(4px)}
+
+/* ═══════════ work ═══════════ */
+.filters{display:flex; flex-wrap:wrap; gap:9px; margin-bottom:30px}
+.filter{
+  appearance:none; cursor:pointer; background:var(--paper); color:var(--ink);
+  border:2.5px solid var(--ink); border-radius:999px; padding:10px 16px;
+  font:800 13px/1 var(--body); box-shadow:0 3px 0 var(--ink);
+  transition:transform .2s var(--bounce), background .2s;
+}
+.filter:hover{transform:translateY(-2px)}
+.filter:active{transform:translateY(2px) scale(1.05,.93)}
+.filter[aria-pressed="true"]{background:var(--pink); color:#fff}
+
+.grid{display:grid; gap:20px; grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.tile{
+  position:relative; margin:0; cursor:pointer;
+  background:var(--paper); padding:10px 10px 34px;
+  border:2.5px solid var(--ink); border-radius:4px; box-shadow:var(--pop);
+  transition:transform .3s var(--bounce), box-shadow .3s var(--bounce);
+}
+.tile:nth-child(3n+1){transform:rotate(-1.6deg)}
+.tile:nth-child(3n+2){transform:rotate(1.3deg)}
+.tile:nth-child(3n){transform:rotate(-.5deg)}
+.tile:hover,.tile:focus-visible{transform:rotate(0) translateY(-6px) scale(1.02); box-shadow:var(--pop-lg); z-index:2}
+.tile[hidden]{display:none}
+.tile img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:2px; background:var(--bg)}
+.tile:nth-child(4n+1) img{aspect-ratio:1/1.25}
+.tile figcaption{
+  position:absolute; inset-inline:12px; bottom:9px;
+  font:400 15px/1.2 var(--hand); color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+[dir="rtl"] .tile figcaption{font-size:18px}
+.tile .frame{
+  position:absolute; top:16px; inset-inline-start:16px; z-index:2;
+  font:800 11px/1 var(--body); color:var(--ink);
+  background:var(--paper); border:2px solid var(--ink);
+  border-radius:6px; padding:4px 6px;
+}
+.tile .loop{
+  position:absolute; top:16px; inset-inline-end:16px; z-index:2;
+  font:800 11px/1 var(--body); color:#241A47; background:var(--lime);
+  border:2px solid var(--ink); border-radius:6px; padding:4px 6px;
+}
+.tile.empty{cursor:default}
+.tile.empty img{visibility:hidden}
+.tile.empty::after{
+  content:attr(data-empty); position:absolute; inset:10px 10px 34px;
+  display:grid; place-items:center; border-radius:2px;
+  font:400 15px/1 var(--hand); color:var(--muted);
+  background:repeating-linear-gradient(45deg,transparent 0 10px,var(--line) 10px 12px);
+}
+[dir="rtl"] .tile.empty::after{font-size:19px}
+
+/* ═══════════ commissions ═══════════ */
+.tiers{display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); margin-bottom:38px}
+.tier{
+  background:var(--paper); border:2.5px solid var(--ink); border-radius:20px;
+  padding:22px 20px; box-shadow:var(--pop);
+  transition:transform .3s var(--bounce);
+}
+.tier:nth-child(1){transform:rotate(-1.2deg)}
+.tier:nth-child(3){transform:rotate(1.2deg)}
+.tier:hover{transform:rotate(0) translateY(-5px)}
+.tier h3{margin:0 0 2px; font:400 27px/1.1 var(--display)}
+.tier .price{
+  display:inline-block; font:800 15px/1 var(--body); margin-bottom:14px;
+  padding:5px 9px; border-radius:8px; border:2px solid var(--ink);
+  direction:ltr;
+}
+.tier:nth-child(1) .price{background:var(--pink); color:#fff}
+.tier:nth-child(2) .price{background:var(--sky); color:#241A47}
+.tier:nth-child(3) .price{background:var(--lime); color:#241A47}
+.tier ul{margin:0; padding:0; list-style:none; font-size:15px; color:var(--muted)}
+.tier li{padding:4px 0; padding-inline-start:18px; position:relative}
+.tier li::before{content:"→"; position:absolute; inset-inline-start:0; color:var(--ink); font-size:13px}
+[dir="rtl"] .tier li::before{content:"←"}
+
+.steps{counter-reset:s; display:grid; gap:14px; margin-bottom:30px}
+.step{display:flex; gap:16px; align-items:flex-start}
+.step::before{
+  counter-increment:s; content:counter(s);
+  flex:none; width:38px; height:38px; display:grid; place-items:center;
+  font:400 22px/1 var(--display); color:var(--ink);
+  background:var(--paper); border:2.5px solid var(--ink); border-radius:50%;
+  box-shadow:0 3px 0 var(--ink); transform:rotate(-4deg);
+}
+.step p{margin:0; font-size:16px; padding-top:6px}
+.step p b{font-weight:800}
+.step p span{display:block; color:var(--muted); font-size:15px}
+
+.rules{
+  background:var(--paper); border:2.5px dashed var(--ink); border-radius:18px;
+  padding:20px 22px; font:400 16px/1.6 var(--hand); transform:rotate(-.6deg);
+}
+[dir="rtl"] .rules{transform:rotate(.6deg); font-size:21px; line-height:1.5}
+.rules b{color:var(--pink); font-weight:600}
+
+/* ═══════════ hi ═══════════ */
+.hi{text-align:center}
+.cta{
+  display:inline-flex; align-items:center; gap:11px; text-decoration:none;
+  background:var(--pink); color:#fff; border:2.5px solid var(--ink);
+  border-radius:999px; padding:17px 28px; margin-bottom:32px;
+  font:800 17px/1 var(--body); box-shadow:var(--pop);
+  transform:rotate(-1deg);
+  transition:transform .25s var(--bounce), box-shadow .25s var(--bounce);
+}
+.cta:hover{transform:rotate(0) translateY(-4px) scale(1.03,.98); box-shadow:var(--pop-lg)}
+.cta:active{transform:translateY(3px) scale(1.05,.93); box-shadow:0 1px 0 var(--ink)}
+
+.socials{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.social{
+  width:52px; height:52px; display:grid; place-items:center;
+  background:var(--paper); border:2.5px solid var(--ink); border-radius:16px;
+  box-shadow:0 4px 0 var(--ink); transition:transform .25s var(--bounce);
+}
+.social:nth-child(2n){transform:rotate(-3deg)}
+.social:nth-child(3n){transform:rotate(3deg)}
+.social:hover{transform:rotate(0) translateY(-5px)}
+.social:active{transform:translateY(3px) scale(1.08,.9)}
+.social svg{width:21px; height:21px}
+
+footer{text-align:center; padding:50px 0 64px; font:400 15px/1.7 var(--hand); color:var(--muted)}
+[dir="rtl"] footer{font-size:19px}
+footer a{color:var(--pink); text-decoration:none; font-weight:600}
+footer a:hover{text-decoration:underline wavy}
+
+/* ═══════════ lightbox ═══════════ */
+.lb{
+  position:fixed; inset:0; z-index:100; display:none; place-items:center;
+  padding:76px 20px; background:color-mix(in srgb,var(--bg) 93%,#000);
+  backdrop-filter:blur(6px);
+}
+.lb[open]{display:grid}
+.lb-card{background:var(--paper); border:3px solid var(--ink); border-radius:6px;
+  padding:12px 12px 8px; box-shadow:var(--pop-lg); max-width:min(92vw,820px)}
+.lb-card img{max-height:70vh; width:auto; margin:0 auto; border-radius:2px}
+.lb-cap{margin:12px 4px 4px; font:400 17px/1.3 var(--hand); color:var(--muted); text-align:center}
+[dir="rtl"] .lb-cap{font-size:21px}
+.lb-cap b{color:var(--ink); font-weight:600}
+.lb-desc{margin:2px 14px 8px; font:400 15px/1.5 var(--body); color:var(--muted); text-align:center; max-width:56ch; margin-inline:auto}
+.lb-desc[hidden]{display:none}
+.lb-btn{
+  position:absolute; appearance:none; cursor:pointer;
+  width:50px; height:50px; display:grid; place-items:center;
+  background:var(--paper); border:2.5px solid var(--ink); border-radius:14px;
+  color:var(--ink); box-shadow:0 4px 0 var(--ink);
+  transition:transform .2s var(--bounce);
+}
+.lb-btn:hover{transform:translateY(-3px)}
+.lb-btn:active{transform:translateY(3px) scale(1.08,.9); box-shadow:0 1px 0 var(--ink)}
+.lb-close{top:22px; inset-inline-end:22px}
+.lb-prev{inset-inline-start:22px; top:50%; margin-top:-25px}
+.lb-next{inset-inline-end:22px; top:50%; margin-top:-25px}
+.lb-btn svg{width:19px; height:19px}
+[dir="rtl"] .lb-prev svg,[dir="rtl"] .lb-next svg{transform:scaleX(-1)}
+
+/* ═══════════ reveal ═══════════ */
+.rv{opacity:0; transform:translateY(22px)}
+.rv.in{opacity:1; transform:none; transition:opacity .6s, transform .6s var(--bounce)}
+
+@media (max-width:560px){
+  .sec{padding:46px 0}
+  .bar-in{gap:8px}
+  .toggle{padding:8px 11px}
+  .lang{min-width:58px}
+  .grid{grid-template-columns:repeat(2,1fr); gap:14px}
+  .tile{padding:7px 7px 28px}
+  .tile figcaption{font-size:13px; inset-inline:9px}
+  .link{padding:16px 17px; gap:12px}
+  .lb{padding:76px 12px}
+  .lb-prev{inset-inline-start:10px} .lb-next{inset-inline-end:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important; transition:none!important}
+  .rv{opacity:1; transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <span class="who" data-en="diana" data-he="דיאנה">diana</span>
+
+    <div class="btns">
+      <button class="toggle lang" id="langBtn" aria-label="עבור לעברית">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9.5"/><path d="M2.6 12h18.8M12 2.5a15 15 0 010 19 15 15 0 010-19z"/></svg>
+        <b id="langLbl">עב</b>
+      </button>
+
+      <button class="toggle" id="themeBtn" aria-label="Switch to dark theme">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+        <span id="themeLbl">dark</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ hero ═══ -->
+<section class="hero" id="hero">
+  <div class="wrap">
+    <figure class="photo">
+      <span class="tape" aria-hidden="true"></span>
+      <img src="art/avatar.jpg" alt="Diana">
+      <figcaption data-en="that's me" data-he="זאת אני">that's me</figcaption>
+    </figure>
+
+    <h1 data-en="diana" data-he="דיאנה">diana</h1>
+    <p class="handle"><span class="ltr">@tatara_arts</span></p>
+
+    <p class="bio"
+       data-en="I draw things and then I &lt;b&gt;make them move&lt;/b&gt;. Characters mostly. Sometimes they blink."
+       data-he="אני מציירת דברים ואז &lt;b&gt;מזיזה אותם&lt;/b&gt;. בעיקר דמויות. לפעמים הן ממצמצות.">
+      I draw things and then I <b>make them move</b>. Characters mostly. Sometimes they blink.
+    </p>
+
+    <div class="chips">
+      <span class="chip" data-en="2D animation" data-he="אנימציה דו-ממדית">2D animation</span>
+      <span class="chip" data-en="illustration" data-he="איור">illustration</span>
+      <span class="chip" data-en="character design" data-he="עיצוב דמויות">character design</span>
+      <span class="chip" data-en="frame by frame" data-he="פריים אחרי פריים">frame by frame</span>
+    </div>
+
+    <p class="open"><i></i><span data-en="commissions open" data-he="פתוחה להזמנות">commissions open</span></p>
+  </div>
+</section>
+
+<!-- ═══ links ═══ -->
+<section class="sec" id="links">
+  <div class="wrap">
+    <p class="note rv" data-en="the important buttons ↓" data-he="הכפתורים החשובים ↓">the important buttons ↓</p>
+    <div class="links">
+
+      <a class="link rv" href="#" target="_blank" rel="noopener">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h13a4 4 0 010 8h-1M4 6v8a4 4 0 004 4h5a4 4 0 004-4"/><path d="M8 2v2M12 2v2"/></svg></span>
+        <span class="txt">
+          <span class="t" data-en="Ko-fi" data-he="Ko-fi">Ko-fi</span>
+          <span class="s" data-en="buy me a coffee, get sketches" data-he="קנו לי קפה, קבלו סקיצות">buy me a coffee, get sketches</span>
+        </span>
+        <svg class="arw" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link rv" href="#" target="_blank" rel="noopener">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.8C10.9 8.6 7.9 4.6 5.1 2.6 2.4.7 1.4 1 .7 1.3 0 1.7 0 2.9 0 3.6c0 .7.4 5.7.6 6.6.8 2.8 3.7 3.7 6.4 3.4-4 .6-7.5 2-2.9 7.2 5.1 5.2 7-1.1 8-4.3 1 3.2 2.1 9.3 7.9 4.3 4.3-4.3 1.2-6.6-2.8-7.2 2.7.3 5.6-.6 6.4-3.4.2-.9.6-5.9.6-6.6 0-.7 0-1.9-.7-2.3-.7-.3-1.7-.6-4.4 1.3-2.8 2-5.8 6-6.9 8.2z"/></svg></span>
+        <span class="txt">
+          <span class="t" data-en="Bluesky" data-he="Bluesky">Bluesky</span>
+          <span class="s" data-en="loops and doodles, most days" data-he="לופים ושרבוטים, כמעט כל יום">loops and doodles, most days</span>
+        </span>
+        <svg class="arw" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link rv" href="#" target="_blank" rel="noopener">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+        <span class="txt">
+          <span class="t" data-en="Instagram" data-he="Instagram">Instagram</span>
+          <span class="s" data-en="the finished stuff" data-he="הדברים המוגמרים">the finished stuff</span>
+        </span>
+        <svg class="arw" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="link rv" href="#comms">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-3-3-7 7-1 4 4-1z"/><path d="M16 5l3 3"/></svg></span>
+        <span class="txt">
+          <span class="t" data-en="commission me" data-he="הזמינו ציור">commission me</span>
+          <span class="s" data-en="prices, slots, the rules" data-he="מחירים, מקומות פנויים, הכללים">prices, slots, the rules</span>
+        </span>
+        <svg class="arw down" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ work ═══ -->
+<section class="sec" id="work">
+  <div class="wrap wide">
+    <p class="note rv" data-en="click one, it gets bigger" data-he="לחצו על אחד, הוא יגדל">click one, it gets bigger</p>
+    <h2 class="rv" data-en="the &lt;em&gt;pile&lt;/em&gt;" data-he="&lt;em&gt;הערימה&lt;/em&gt;">the <em>pile</em></h2>
+    <p class="sub rv" data-en="everything I've made that I still like." data-he="כל מה שיצרתי ועדיין אוהבת.">everything I've made that I still like.</p>
+
+    <div class="filters rv" role="group" aria-label="Filter artwork">
+      <button class="filter" data-cat="all" aria-pressed="true" data-en="everything" data-he="הכל">everything</button>
+      <button class="filter" data-cat="anim" aria-pressed="false" data-en="animation" data-he="אנימציה">animation</button>
+      <button class="filter" data-cat="draw" aria-pressed="false" data-en="drawings" data-he="ציורים">drawings</button>
+      <button class="filter" data-cat="sketch" aria-pressed="false" data-en="sketchbook" data-he="מחברת סקיצות">sketchbook</button>
+    </div>
+
+    <div class="grid rv" id="grid" aria-live="polite" aria-busy="true"></div>
+  </div>
+</section>
+
+<!-- ═══ commissions ═══ -->
+<section class="sec" id="comms">
+  <div class="wrap">
+    <p class="note rv"
+       data-en="&lt;b&gt;3&lt;/b&gt; slots left this month"
+       data-he="נשארו &lt;b&gt;3&lt;/b&gt; מקומות החודש"><b>3</b> slots left this month</p>
+    <h2 class="rv" data-en="draw &lt;em&gt;your&lt;/em&gt; guy" data-he="אצייר &lt;em&gt;את הדמות שלכם&lt;/em&gt;">draw <em>your</em> guy</h2>
+    <p class="sub rv" data-en="prices are for personal use. commercial gets a quote." data-he="המחירים לשימוש אישי. שימוש מסחרי — לפי הצעת מחיר.">prices are for personal use. commercial gets a quote.</p>
+
+    <div class="tiers rv">
+      <div class="tier">
+        <h3 data-en="bust" data-he="פנים">bust</h3>
+        <p class="price">$45</p>
+        <ul>
+          <li data-en="head + shoulders" data-he="ראש וכתפיים">head + shoulders</li>
+          <li data-en="flat colour" data-he="צבע שטוח">flat colour</li>
+          <li data-en="~3 days" data-he="כ-3 ימים">~3 days</li>
+        </ul>
+      </div>
+      <div class="tier">
+        <h3 data-en="full body" data-he="גוף מלא">full body</h3>
+        <p class="price">$90</p>
+        <ul>
+          <li data-en="whole guy, shaded" data-he="דמות שלמה, עם הצללות">whole guy, shaded</li>
+          <li data-en="transparent bg" data-he="רקע שקוף">transparent bg</li>
+          <li data-en="~1 week" data-he="כשבוע">~1 week</li>
+        </ul>
+      </div>
+      <div class="tier">
+        <h3 data-en="animated" data-he="אנימציה">animated</h3>
+        <p class="price">from $180</p>
+        <ul>
+          <li data-en="short loop, 12–24 frames" data-he="לופ קצר, 12–24 פריימים">short loop, 12–24 frames</li>
+          <li data-en="gif + mp4 + frames" data-he="gif + mp4 + פריימים">gif + mp4 + frames</li>
+          <li data-en="2–3 weeks" data-he="2–3 שבועות">2–3 weeks</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="steps rv">
+      <div class="step"><p
+        data-en="&lt;b&gt;send me a ref and a sentence&lt;/b&gt;&lt;span&gt;who they are, what they're doing, when you need it.&lt;/span&gt;"
+        data-he="&lt;b&gt;שלחו לי רפרנס ומשפט&lt;/b&gt;&lt;span&gt;מי הדמות, מה היא עושה, ומתי אתם צריכים את זה.&lt;/span&gt;"><b>send me a ref and a sentence</b><span>who they are, what they're doing, when you need it.</span></p></div>
+      <div class="step"><p
+        data-en="&lt;b&gt;I sketch, you say yes or no&lt;/b&gt;&lt;span&gt;half up front. one round of changes at sketch stage.&lt;/span&gt;"
+        data-he="&lt;b&gt;אני מסקיצה, אתם מאשרים&lt;/b&gt;&lt;span&gt;חצי מראש. סבב תיקונים אחד בשלב הסקיצה.&lt;/span&gt;"><b>I sketch, you say yes or no</b><span>half up front. one round of changes at sketch stage.</span></p></div>
+      <div class="step"><p
+        data-en="&lt;b&gt;I finish it&lt;/b&gt;&lt;span&gt;rest on delivery, files straight to your inbox.&lt;/span&gt;"
+        data-he="&lt;b&gt;אני מסיימת&lt;/b&gt;&lt;span&gt;השאר בעת המסירה, הקבצים ישר למייל שלכם.&lt;/span&gt;"><b>I finish it</b><span>rest on delivery, files straight to your inbox.</span></p></div>
+    </div>
+
+    <p class="rules rv"
+       data-en="things I &lt;b&gt;will&lt;/b&gt; draw: your OC, your friend's OC, mechs, monsters, someone's cat. things I &lt;b&gt;won't&lt;/b&gt;: hate stuff, real people in weird situations, anything that gets fed to an AI."
+       data-he="מה שאני &lt;b&gt;כן&lt;/b&gt; אצייר: הדמות שלכם, הדמות של חבר, מכות, מפלצות, החתול של מישהו. מה שאני &lt;b&gt;לא&lt;/b&gt;: תוכן שנאה, אנשים אמיתיים במצבים מוזרים, וכל דבר שיוזן ל-AI.">
+      things I <b>will</b> draw: your OC, your friend's OC, mechs, monsters, someone's cat.
+      things I <b>won't</b>: hate stuff, real people in weird situations, anything that gets fed to an AI.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ hi ═══ -->
+<section class="sec hi" id="hi">
+  <div class="wrap">
+    <p class="note rv" data-en="I do read these" data-he="אני באמת קוראת את אלה">I do read these</p>
+    <h2 class="rv" data-en="say &lt;em&gt;hi&lt;/em&gt;" data-he="בואו &lt;em&gt;נדבר&lt;/em&gt;">say <em>hi</em></h2>
+    <p class="sub rv" data-en="commissions, collabs, or just show me a drawing." data-he="הזמנות, שיתופי פעולה, או פשוט תראו לי ציור.">commissions, collabs, or just show me a drawing.</p>
+
+    <a class="cta rv" href="mailto:hello@example.com">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m2 7 10 6 10-6"/></svg>
+      <span class="ltr">hello@example.com</span>
+    </a>
+
+    <div class="socials rv">
+      <a class="social" href="#" aria-label="Bluesky" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 10.8C10.9 8.6 7.9 4.6 5.1 2.6 2.4.7 1.4 1 .7 1.3 0 1.7 0 2.9 0 3.6c0 .7.4 5.7.6 6.6.8 2.8 3.7 3.7 6.4 3.4-4 .6-7.5 2-2.9 7.2 5.1 5.2 7-1.1 8-4.3 1 3.2 2.1 9.3 7.9 4.3 4.3-4.3 1.2-6.6-2.8-7.2 2.7.3 5.6-.6 6.4-3.4.2-.9.6-5.9.6-6.6 0-.7 0-1.9-.7-2.3-.7-.3-1.7-.6-4.4 1.3-2.8 2-5.8 6-6.9 8.2z"/></svg>
+      </a>
+      <a class="social" href="#" aria-label="Instagram" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.2" fill="currentColor" stroke="none"/></svg>
+      </a>
+      <a class="social" href="#" aria-label="Ko-fi" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h13a4 4 0 010 8h-1M4 6v8a4 4 0 004 4h5a4 4 0 004-4"/><path d="M8 2v2M12 2v2"/></svg>
+      </a>
+      <a class="social" href="#" aria-label="YouTube" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="m10.5 9.5 5 2.5-5 2.5z" fill="currentColor"/></svg>
+      </a>
+      <a class="social" href="#" aria-label="Tumblr" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5v4h-5v5.5a2 2 0 002 2h3V23h-4a5 5 0 01-5-5v-6H7V8.6C10 8 11.4 5.6 11.7 3z"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span data-en="© 2026 diana · please don't repost my stuff" data-he="© 2026 דיאנה · בבקשה לא להעלות מחדש את העבודות שלי">© <span id="yr">2026</span> diana · please don't repost my stuff</span><br>
+  <span data-en="site by &lt;a href='https://github.com/Daniel-Yasman' target='_blank' rel='noopener'&gt;daniel&lt;/a&gt;"
+        data-he="האתר נבנה על ידי &lt;a href='https://github.com/Daniel-Yasman' target='_blank' rel='noopener'&gt;דניאל&lt;/a&gt;">site by <a href="https://github.com/Daniel-Yasman" target="_blank" rel="noopener">daniel</a></span>
+</footer>
+
+<!-- ═══ lightbox ═══ -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Artwork viewer">
+  <button class="lb-btn lb-close" id="lbClose" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <button class="lb-btn lb-prev" id="lbPrev" aria-label="Previous">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  </button>
+  <button class="lb-btn lb-next" id="lbNext" aria-label="Next">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </button>
+  <div class="lb-card">
+    <img id="lbImg" src="" alt="">
+    <p class="lb-cap"><b id="lbTitle"></b> <span id="lbMeta"></span></p>
+    <p class="lb-desc" id="lbDesc" hidden></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $  = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const root = document.documentElement;
+
+  /* ── strings that live in JS, not in the DOM ── */
+  const T = {
+    en: { title:"diana — draws stuff, makes it move", dark:"dark", light:"light",
+          empty:"drop art here", of:(a,b)=>`— ${a} of ${b}`,
+          langBtn:"עב", langAria:"עבור לעברית" },
+    he: { title:"דיאנה — מציירת, ומזיזה", dark:"כהה", light:"בהיר",
+          empty:"כאן ייכנס ציור", of:(a,b)=>`— ${a} מתוך ${b}`,
+          langBtn:"EN", langAria:"Switch to English" }
+  };
+  const lang = () => root.lang === 'he' ? 'he' : 'en';
+
+  /* ── theme ── */
+  const themeBtn = $('#themeBtn'), themeLbl = $('#themeLbl');
+  if (matchMedia('(prefers-color-scheme: dark)').matches) root.dataset.theme = 'dark';
+  const syncTheme = () => {
+    const dark = root.dataset.theme === 'dark';
+    themeLbl.textContent = dark ? T[lang()].light : T[lang()].dark;
+    themeBtn.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
+  };
+  themeBtn.onclick = () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; syncTheme(); };
+
+  /* ── language ── */
+  const langBtn = $('#langBtn'), langLbl = $('#langLbl');
+  const setLang = l => {
+    root.lang = l;
+    root.dir = l === 'he' ? 'rtl' : 'ltr';
+    document.title = T[l].title;
+    $$('[data-en]').forEach(el => { el.innerHTML = el.dataset[l]; });
+    $$('.tile').forEach(t => t.dataset.empty = T[l].empty);
+    langLbl.textContent = T[l].langBtn;
+    langBtn.setAttribute('aria-label', T[l].langAria);
+    syncTheme();
+    if (lb.hasAttribute('open')) paint();
+  };
+  langBtn.onclick = () => setLang(lang() === 'he' ? 'en' : 'he');
+
+  /* ── missing art → placeholder ── */
+  const miss = img => img.closest('.tile, .photo')?.classList.add('empty');
+  const watchImg = img => {
+    img.addEventListener('error', () => miss(img));
+    if (img.complete && img.naturalWidth === 0) miss(img);
+  };
+  $$('.photo img').forEach(watchImg);   // hero photo is static; tiles are watched after render
+
+  /* ── reveal on scroll ── */
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: .1 });
+  $$('.rv').forEach((el, i) => { el.style.transitionDelay = `${Math.min(i % 5, 4) * 60}ms`; io.observe(el); });
+
+  /* ── filters ── */
+  $$('.filter').forEach(f => f.onclick = () => {
+    $$('.filter').forEach(o => o.setAttribute('aria-pressed', String(o === f)));
+    $$('.tile').forEach(t => t.hidden = f.dataset.cat !== 'all' && t.dataset.cat !== f.dataset.cat);
+  });
+
+  /* ── lightbox ── */
+  const lb = $('#lb'), lbImg = $('#lbImg'), lbTitle = $('#lbTitle'), lbMeta = $('#lbMeta'), lbDesc = $('#lbDesc');
+  let idx = 0, list = [];
+  const live = () => $$('.tile').filter(t => !t.hidden && !t.classList.contains('empty'));
+  function paint(){
+    const t = list[idx]; if (!t) return;
+    const img = t.querySelector('img');
+    lbImg.src = img.src; lbImg.alt = img.alt;
+    lbTitle.textContent = t.querySelector('figcaption').textContent;
+    lbMeta.textContent = T[lang()].of(idx + 1, list.length);
+    const desc = t.dataset.desc || '';
+    lbDesc.textContent = desc;
+    lbDesc.hidden = !desc;
+  }
+  const open = t => {
+    list = live(); idx = list.indexOf(t); if (idx < 0) return;
+    paint(); lb.setAttribute('open',''); $('#lbClose').focus();
+    document.body.style.overflow = 'hidden';
+  };
+  const close = () => { lb.removeAttribute('open'); document.body.style.overflow = ''; };
+  const step = d => { idx = (idx + d + list.length) % list.length; paint(); };
+
+  function wireTiles(){
+    $$('#grid .tile').forEach(t => {
+      const img = t.querySelector('img');
+      if (img) watchImg(img);
+      t.onclick = () => !t.classList.contains('empty') && open(t);
+      t.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!t.classList.contains('empty')) open(t); }
+      };
+    });
+  }
+  $('#lbClose').onclick = close;
+  $('#lbPrev').onclick = () => step(-1);
+  $('#lbNext').onclick = () => step(1);
+  lb.onclick = e => { if (e.target === lb) close(); };
+  addEventListener('keydown', e => {
+    if (!lb.hasAttribute('open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft')  step(root.dir === 'rtl' ? 1 : -1);
+    if (e.key === 'ArrowRight') step(root.dir === 'rtl' ? -1 : 1);
+  });
+
+  /* ── gallery from the CMS (art/gallery.json, edited at /admin) ── */
+  const grid = $('#grid');
+  const okCat = c => c === 'draw' || c === 'anim' || c === 'sketch';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+  const pad = n => String(n).padStart(2, '0');
+
+  function tileHTML(item, i){
+    const cat  = okCat(item.category) ? item.category : 'draw';
+    const en   = esc(item.title || '');
+    const he   = esc(item.title_he || item.title || '');
+    const desc = esc((item.description || '').replace(/\s+/g, ' ').trim());
+    const cap  = lang() === 'he' ? he : en;
+    const alt  = esc(item.description || item.title || 'Artwork');
+    const loop = cat === 'anim' ? '<span class="loop">LOOP</span>' : '';
+    return `<figure class="tile" data-cat="${cat}" data-desc="${desc}" tabindex="0">`
+         + `<span class="frame">${pad(i + 1)}</span>${loop}`
+         + `<img src="${esc(item.image)}" alt="${alt}">`
+         + `<figcaption data-en="${en}" data-he="${he}">${cap}</figcaption>`
+         + `</figure>`;
+  }
+
+  async function renderGallery(){
+    let items = [];
+    try {
+      const res = await fetch('art/gallery.json', { cache: 'no-store' });
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data.items)) items = data.items; }
+    } catch (e) { /* missing/offline → empty state below */ }
+
+    if (!items.length){
+      grid.innerHTML = `<figure class="tile empty" data-empty="${esc(T[lang()].empty)}"><img alt=""></figure>`;
+    } else {
+      grid.innerHTML = items.filter(it => it && it.image).map(tileHTML).join('');
+      wireTiles();
+    }
+    grid.setAttribute('aria-busy', 'false');
+  }
+
+  /* ── boot ── */
+  const year = new Date().getFullYear();
+  $$('[data-en]').forEach(el => {
+    el.dataset.en = el.dataset.en.replace('2026', year);
+    el.dataset.he = el.dataset.he.replace('2026', year);
+  });
+  setLang(navigator.language?.startsWith('he') ? 'he' : 'en');
+  renderGallery();
+})();
+</script>
+
+<!-- After Diana confirms her email invite, send her to the CMS -->
+<script>
+  if (window.netlifyIdentity) {
+    window.netlifyIdentity.on('init', user => {
+      if (!user) {
+        window.netlifyIdentity.on('login', () => { document.location.href = '/admin/'; });
+      }
+    });
+  }
+</script>
+</body>
+</html>
